@@ -57,7 +57,7 @@ def init_session_state():
         # plot controls
         "auto_zoom": True,
         "target_radius_in": 9.0,
-        # static profile (shown under plot) — DEFAULTS REQUESTED BY USER
+        # static profile (shown under plot)
         "profile_caliber": "7.62 x 51",
         "profile_bullet": "168 gr Sierra MatchKing",
         "profile_bc": ".462",
@@ -67,7 +67,6 @@ def init_session_state():
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
-    # keep mirrors aligned to main cant on first load
     st.session_state.cant_deg_num = float(st.session_state.cant_deg)
     st.session_state.cant_deg_slide = float(st.session_state.cant_deg)
 
@@ -82,7 +81,6 @@ def reset_all():
     st.session_state.zero_range = 100
     st.session_state.auto_zoom = True
     st.session_state.target_radius_in = 9.0
-    # reset profile to defaults matching init_session_state defaults
     st.session_state.profile_caliber = "7.62 x 51"
     st.session_state.profile_bullet = "168 gr Sierra MatchKing"
     st.session_state.profile_bc = ".462"
@@ -110,7 +108,7 @@ def add_shot(index: int, target_radius_in: float):
             "color": SHOT_COLORS[len(st.session_state.shots)]
         })
 
-# --- Cant sync using callbacks (prevents resetting) ---
+# --- Cant sync callbacks ---
 def _set_cant_from_num():
     st.session_state.cant_deg = float(st.session_state.cant_deg_num)
     st.session_state.cant_deg_slide = float(st.session_state.cant_deg)
@@ -121,19 +119,11 @@ def _set_cant_from_slide():
 
 init_session_state()
 
-# normalize types
-if isinstance(st.session_state.range_yd, float):
-    st.session_state.range_yd = int(round(st.session_state.range_yd))
-if isinstance(st.session_state.zero_range, float):
-    st.session_state.zero_range = int(round(st.session_state.zero_range))
-if isinstance(st.session_state.sight_height, int):
-    st.session_state.sight_height = float(st.session_state.sight_height)
-
 # ---------- Sidebar ----------
 with st.sidebar:
     st.header("Controls")
 
-    # --- Move shoot buttons to the top (shorter labels so they fit) ---
+    # Shoot buttons at top
     st.markdown("### Fire shots (click while cant is set)")
     cols = st.columns(3)
     for i, col in enumerate(cols, start=1):
@@ -151,7 +141,7 @@ with st.sidebar:
     st.number_input("Sight height (in) — LOS above bore (2.5–5.0)",
                     min_value=2.5, max_value=5.0, step=0.1,
                     key="sight_height")
-    st.number_input("Zero range (yards) — bullet intersects LOS",
+    st.number_input("Zero range (yards)",
                     min_value=10, max_value=1000, step=10,
                     key="zero_range")
 
@@ -198,7 +188,7 @@ h_in, v_in, t_sec, y_rel_LOS_in = compute_impact_at_range(
 )
 off_preview = math.hypot(h_in, v_in) > st.session_state.target_radius_in
 
-# ---------- Plot (first) ----------
+# ---------- Plot ----------
 fig, ax = plt.subplots(figsize=(6.8, 6.8))
 
 def draw_target(ax, title, show_grid=False, radius=12.0):
@@ -233,22 +223,24 @@ else:
 
 # recorded shots
 for s in st.session_state.shots:
-    display_h = s["h_in"]
-    display_v = s["v_in"]
-    color = s["color"]
+    display_h, display_v, color = s["h_in"], s["v_in"], s["color"]
     if math.hypot(display_h, display_v) > st.session_state.target_radius_in:
         angle = math.atan2(display_v, display_h)
         clip_x = st.session_state.target_radius_in * 0.98 * math.cos(angle)
         clip_y = st.session_state.target_radius_in * 0.98 * math.sin(angle)
-        ax.scatter(clip_x, clip_y, s=140, marker='X', c=color, edgecolors='k', linewidths=1.0, zorder=7)
+        ax.scatter(clip_x, clip_y, s=140, marker='X', c=color,
+                   edgecolors='k', linewidths=1.0, zorder=7)
         ax.annotate(f"Shot {s['index']} OFF\n{display_h:+.2f}, {display_v:+.2f} in",
-                    xy=(clip_x, clip_y), xytext=(8, -8), textcoords='offset points', fontsize=8,
-                    bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.9))
+                    xy=(clip_x, clip_y), xytext=(8, -8),
+                    textcoords='offset points', fontsize=8,
+                    bbox=dict(boxstyle='round,pad=0.2', fc='white', alpha=0.9))
     else:
-        ax.scatter(display_h, display_v, s=90, c=color, edgecolors='k', linewidths=0.8, zorder=7)
+        ax.scatter(display_h, display_v, s=90, c=color,
+                   edgecolors='k', linewidths=0.8, zorder=7)
         ax.annotate(f"Shot {s['index']} ({s['cant']:+.2f}°)\n{display_h:+.2f}, {display_v:+.2f} in",
-                    xy=(display_h, display_v), xytext=(8, -8), textcoords='offset points', fontsize=8,
-                    bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.85))
+                    xy=(display_h, display_v), xytext=(8, -8),
+                    textcoords='offset points', fontsize=8,
+                    bbox=dict(boxstyle='round,pad=0.2', fc='white', alpha=0.85))
 
 # auto-zoom
 xs = [h_in] + [s["h_in"] for s in st.session_state.shots]
@@ -266,19 +258,19 @@ else:
     ax.set_xlim(-st.session_state.target_radius_in, st.session_state.target_radius_in)
     ax.set_ylim(-st.session_state.target_radius_in, st.session_state.target_radius_in)
 
-# legend
 if st.session_state.shots:
     handles, labels = [], []
     for s in st.session_state.shots:
         handles.append(plt.Line2D([0], [0], marker='o', color='w',
                                   markerfacecolor=s['color'], markeredgecolor='k', markersize=8))
-        labels.append(f"Shot {s['index']} ({s['cant']:+.2f}°)" + (" — OFF" if s['off_target'] else ""))
+        labels.append(f"Shot {s['index']} ({s['cant']:+.2f}°)" +
+                      (" — OFF" if s['off_target'] else ""))
     ax.legend(handles, labels, loc='upper right', fontsize=9)
 
 plt.tight_layout()
 st.pyplot(fig)
 
-# ---------- Numbers / Info (moved below the image) ----------
+# ---------- Below-plot metrics ----------
 st.subheader("Zeroing")
 c1, c2 = st.columns(2)
 c1.metric("Zero range (yd)", f"{st.session_state.zero_range:.0f}")
