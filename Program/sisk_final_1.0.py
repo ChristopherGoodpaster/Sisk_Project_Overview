@@ -1,4 +1,4 @@
-# sisk_final_1.0.py
+# Sisk_final_1.0.py
 import math
 import numpy as np
 import streamlit as st
@@ -57,13 +57,12 @@ def init_session_state():
         # plot controls
         "auto_zoom": True,
         "target_radius_in": 9.0,
-        # static profile (shown under plot)
-        "profile_caliber": "6.5 Creedmoor",
-        "profile_bullet": "140gr ELD-M",
-        "profile_bc": "0.610 (G1)",
-        "profile_twist": "1:8",
-        "profile_barrel": "24 in",
-        "profile_notes": "",
+        # static profile (shown under plot) — DEFAULTS REQUESTED BY USER
+        "profile_caliber": "7.62 x 51",
+        "profile_bullet": "168 gr Sierra MatchKing",
+        "profile_bc": ".462",
+        "profile_twist": "1:12",
+        "profile_notes": "Muzzle velocity 2650 FPS",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -83,6 +82,12 @@ def reset_all():
     st.session_state.zero_range = 100
     st.session_state.auto_zoom = True
     st.session_state.target_radius_in = 9.0
+    # reset profile to defaults matching init_session_state defaults
+    st.session_state.profile_caliber = "7.62 x 51"
+    st.session_state.profile_bullet = "168 gr Sierra MatchKing"
+    st.session_state.profile_bc = ".462"
+    st.session_state.profile_twist = "1:12"
+    st.session_state.profile_notes = "Muzzle velocity 2650 FPS"
 
 def add_shot(index: int, target_radius_in: float):
     theta_rad, _ = compute_zero_bore_angle(
@@ -128,20 +133,19 @@ if isinstance(st.session_state.sight_height, int):
 with st.sidebar:
     st.header("Controls")
 
-    # --- Move shoot buttons to the top ---
+    # --- Move shoot buttons to the top (shorter labels so they fit) ---
     st.markdown("### Fire shots (click while cant is set)")
     cols = st.columns(3)
     for i, col in enumerate(cols, start=1):
         with col:
             st.button(
-                f"Shot {i}",  # shorter text so it fits
+                f"Shot {i}",
                 on_click=add_shot,
                 args=(i, st.session_state.target_radius_in,),
                 disabled=(len(st.session_state.shots) >= 3)
             )
     st.markdown("---")
 
-    # --- Range / sight / zero controls ---
     st.number_input("Range (yards)", min_value=10, max_value=2000, step=10,
                     key="range_yd")
     st.number_input("Sight height (in) — LOS above bore (2.5–5.0)",
@@ -151,7 +155,6 @@ with st.sidebar:
                     min_value=10, max_value=1000, step=10,
                     key="zero_range")
 
-    # --- Cant controls ---
     st.markdown("### Cant (degrees clockwise)")
     ccols = st.columns([1, 1.6])
     with ccols[0]:
@@ -169,9 +172,9 @@ with st.sidebar:
             label_visibility="collapsed"
         )
 
-    # --- Other toggles ---
     st.checkbox("Show 1-in grid", key="show_grid")
     st.checkbox("Auto-zoom to include all impacts", key="auto_zoom")
+
     st.number_input("Target radius (in)", min_value=2.0, max_value=36.0,
                     step=0.5, key="target_radius_in")
 
@@ -180,9 +183,8 @@ with st.sidebar:
     with st.expander("Rifle & Ammo Profile (static)"):
         st.text_input("Caliber", key="profile_caliber")
         st.text_input("Bullet", key="profile_bullet")
-        st.text_input("BC (G1/G7)", key="profile_bc")
+        st.text_input("BC", key="profile_bc")
         st.text_input("Twist rate", key="profile_twist")
-        st.text_input("Barrel length", key="profile_barrel")
         st.text_area("Notes", key="profile_notes", height=80)
 
 # ---------- Calculations ----------
@@ -310,7 +312,6 @@ st.markdown(
     f"- **Bullet:** {st.session_state.profile_bullet}\n"
     f"- **BC:** {st.session_state.profile_bc}\n"
     f"- **Twist:** {st.session_state.profile_twist}\n"
-    f"- **Barrel:** {st.session_state.profile_barrel}\n"
     + (f"- **Notes:** {st.session_state.profile_notes}" if st.session_state.profile_notes.strip() else "")
 )
 
